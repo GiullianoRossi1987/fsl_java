@@ -27,7 +27,7 @@ public class ExtPackagesManager extends DatabaseManager{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
             Statement checkCursor = this.databaseConnected.createStatement();
-            ResultSet allExtP = checkCursor.executeQuery("SELECT COUNT(cd_pack) as tot from extpackages where nm_pack = \"" + extpack + "\";");
+            ResultSet allExtP = checkCursor.executeQuery("SELECT COUNT(cd_extp) as tot from extpackages where nm_pack = \"" + extpack + "\";");
             return allExtP.getInt("tot") > 0;
         }
         catch(SQLException re){ throw new RuntimeDatabaseError();}
@@ -181,6 +181,29 @@ public class ExtPackagesManager extends DatabaseManager{
         catch (SQLException re){
             throw new RuntimeDatabaseError();
         }
+    }
+
+    public ExtPackagesManager(String path){
+        try{
+            this.databaseConnected = DriverManager.getConnection("jdbc:sqlite:" + path);
+            this.gotDatabase = true;
+        }
+        catch(Exception e){
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+
+    public static void main(String[] args) throws ClassNotFoundException{
+        Class.forName("org.sqlite.JDBC");
+        ExtPackagesManager expm = new ExtPackagesManager("./packages.db");
+        try{
+            expm.addExtPack("yamero", "https://yamero.com/yamero.deb");
+        }
+        catch(ExtPackExistsErr e){ System.out.println("Pack checking error");}
+        catch(DatabaseNotLoadedYet e){ System.out.println("db var error");}
+        catch(RuntimeDatabaseError e){ System.out.println("runtime error");}
+        System.out.println("ok");
     }
 
 }
