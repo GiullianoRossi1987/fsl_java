@@ -7,13 +7,13 @@ public class DatabaseManager {
     protected Connection databaseConnected;
     protected boolean gotDatabase;
 
-    protected static class DatabaseAlreadyConnected extends Exception{}
+    public static class DatabaseAlreadyConnected extends Exception{}
 
-    protected static class DatabaseNotLoadedYet extends Exception{}
+    public static class DatabaseNotLoadedYet extends Exception{}
 
-    protected static class InvalidDatabaseError extends Exception{}
+    protected  static class InvalidDatabaseError extends Exception{}
 
-    protected static class RuntimeDatabaseError extends Exception{}
+    public static class RuntimeDatabaseError extends Exception{}
 
     public DatabaseManager(){
         this.databaseConnected = null;
@@ -51,7 +51,7 @@ public class DatabaseManager {
         }
     }
 
-    public Connection getDatabaseConnected(){ return this.databaseConnected}
+    public Connection getDatabaseConnected(){ return this.databaseConnected; }
 
     public boolean getGotDatabase(){ return this.gotDatabase;}
 
