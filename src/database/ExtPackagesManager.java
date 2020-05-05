@@ -121,7 +121,7 @@ public class ExtPackagesManager extends DatabaseManager{
         }
     }
 
-    public void downloadPackage(String extpack) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError, InstallationError{
+    public void downloadPackage(String extpack, String path) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError, InstallationError{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
             if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound();
@@ -129,6 +129,7 @@ public class ExtPackagesManager extends DatabaseManager{
             cursorSel.setMaxRows(1);
             ResultSet packLinkP = cursorSel.executeQuery("SELECT vl_link FROM extpackages WHERE nm_pack = \"" + extpack +"\"");
             String packLink = packLinkP.getString("vl_link");
+            downloadLink(packLink, path);
         }
         catch(SQLException re){
             throw new RuntimeException();
@@ -158,10 +159,28 @@ public class ExtPackagesManager extends DatabaseManager{
     public String getPackageByLink(String link) throws DatabaseNotLoadedYet, RuntimeDatabaseError{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
-            
+            Statement cursorSelect = this.databaseConnected.createStatement();
+            cursorSelect.setMaxRows(1);
+            ResultSet result = cursorSelect.executeQuery("SELECT nm_pack FROM extpackages WHERE vl_link = \"" + link +"\";");
+            return result.getString("nm_pack");
         }
         catch (SQLException re){
             throw new RuntimeDatabaseError();
         }
     }
+
+    public ArrayList<String> queryPackageByName(String name) throws DatabaseNotLoadedYet, RuntimeDatabaseError{
+        try{
+            if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
+            Statement cursorQuery = this.databaseConnected.createStatement();
+            ResultSet allQuery = cursorQuery.executeQuery("SELECT nm_pack FROM extpackages WHERE nm_pack LIKE \"%" + name + "%\";");
+            ArrayList<String> results = new ArrayList<String>();
+            while(allQuery.next()){ results.add(allQuery.getString("nm_pack")); }
+            return results.size() > 0 ? results : null;
+        }
+        catch (SQLException re){
+            throw new RuntimeDatabaseError();
+        }
+    }
+
 }
