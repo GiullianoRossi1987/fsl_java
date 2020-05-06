@@ -7,13 +7,33 @@ public class DatabaseManager {
     protected Connection databaseConnected;
     protected boolean gotDatabase;
 
-    public static class DatabaseAlreadyConnected extends Exception{}
+    public static class DatabaseAlreadyConnected extends Exception{
 
-    public static class DatabaseNotLoadedYet extends Exception{}
+        public DatabaseAlreadyConnected(){
+            super("ERROR: DATABASE ALREADY CONNECTED AND UNREACHABLE FOR CONNECT");
+        }
+    }
 
-    protected  static class InvalidDatabaseError extends Exception{}
+    public static class DatabaseNotLoadedYet extends Exception{
 
-    public static class RuntimeDatabaseError extends Exception{}
+        public DatabaseNotLoadedYet(){
+            super("ERROR: DATABASE NOT CONNECTED");
+        }
+    }
+
+    protected  static class InvalidDatabaseError extends Exception{
+
+        public InvalidDatabaseError(String message){
+            super("ERROR: INVALID DATABASE {" + message + "}");
+        }
+    }
+
+    public static class RuntimeDatabaseError extends Exception{
+
+        public RuntimeDatabaseError(String message){
+            super("DATABASE ACTION ERROR: " + message);
+        }
+    }
 
     public DatabaseManager(){
         this.databaseConnected = null;
@@ -40,14 +60,14 @@ public class DatabaseManager {
     }
 
     public DatabaseManager(String database) throws InvalidDatabaseError, DatabaseAlreadyConnected, RuntimeDatabaseError{
-        if(!checkDatabase(database)) throw new InvalidDatabaseError();
+        if(!checkDatabase(database)) throw new InvalidDatabaseError("Invalid tables structure");
         if(this.gotDatabase) throw new DatabaseAlreadyConnected();
         try{
             this.databaseConnected = DriverManager.getConnection("jdbc:sqlite3:" + database);
             this.gotDatabase = true;
         }
         catch(SQLException ex){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(ex.getMessage());
         }
     }
 

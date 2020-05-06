@@ -1,5 +1,4 @@
 package database;
-
 import java.sql.*;
 import org.sqlite.*;
 import java.util.ArrayList;
@@ -21,7 +20,7 @@ class PackagesManager extends DatabaseManager{
             return queryCheck.getInt("tot") > 0;
         }
         catch(SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
@@ -37,7 +36,7 @@ class PackagesManager extends DatabaseManager{
             // System.gc();
         }
         catch(SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 }

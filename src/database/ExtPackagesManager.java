@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.lang.Exception;
 import java.sql.*;
 import java.util.ArrayList;
+import database.*;
 
 public class ExtPackagesManager extends DatabaseManager{
 
@@ -11,17 +12,33 @@ public class ExtPackagesManager extends DatabaseManager{
     private static int WEB_INTERFACE_WGET = 1;
     private static int WEB_INTERFACE_CURL = 2;
 
-    public static class ExtPackNotFound extends Exception{}
+    public static class ExtPackNotFound extends Exception{
 
-    public static class ExtPackExistsErr extends Exception{}
+        public ExtPackNotFound(String extp){
+            super("Couldn't found external linux package ' "+ extp + "';");
+        }
+    }
 
-    public static class InvalidLink extends Exception{}
+    public static class ExtPackExistsErr extends Exception{
 
-    public static class InvalidWebInterface extends Exception{}
+        public ExtPackExistsErr(String pack){
+            super("Package reference \"" + pack + "\" already in use");
+        }
+    }
 
-    public static class LinkAlreadyInUse extends Exception{}
+    public static class InvalidWebInterface extends Exception{
 
-    public static class InstallationError extends Exception{}
+        public InvalidWebInterface(int interfacew){
+            super("Invalid web interface: " + interfacew);
+        }
+    }
+
+    public static class InstallationError extends Exception{
+
+        public InstallationError(String ioeMessage){
+            super("ERROR INSTALLING: " + ioeMessage);
+        }
+    }
 
     private boolean checkExtPackEx(String extpack) throws DatabaseNotLoadedYet, RuntimeDatabaseError{
         try{
@@ -30,70 +47,70 @@ public class ExtPackagesManager extends DatabaseManager{
             ResultSet allExtP = checkCursor.executeQuery("SELECT COUNT(cd_extp) as tot from extpackages where nm_pack = \"" + extpack + "\";");
             return allExtP.getInt("tot") > 0;
         }
-        catch(SQLException re){ throw new RuntimeDatabaseError();}
+        catch(SQLException re){ throw new RuntimeDatabaseError(re.getMessage());}
     }
 
     public void addExtPack(String extpack, String link) throws DatabaseNotLoadedYet, RuntimeDatabaseError, ExtPackExistsErr{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
-            if(this.checkExtPackEx(extpack)) throw new ExtPackExistsErr();
+            if(this.checkExtPackEx(extpack)) throw new ExtPackExistsErr(extpack);
             PreparedStatement cursorAdd = this.databaseConnected.prepareStatement("INSERT INTO extpackages (nm_pack, vl_link) VALUES (?, ?);");
             cursorAdd.setString(1, extpack);
             cursorAdd.setString(2, link);
             cursorAdd.executeUpdate();
         }
         catch(SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
     public void delExtPack(String extpack) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
-            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound();
+            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound(extpack);
             PreparedStatement cursorDel = this.databaseConnected.prepareStatement("DELETE FROM extpackages WHERE nm_pack = ?;");
             cursorDel.setString(1, extpack);
             cursorDel.executeUpdate();
 
         }
         catch(SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
     public void chExtPackName(String extpack, String newName) throws DatabaseNotLoadedYet, ExtPackNotFound, ExtPackExistsErr, RuntimeDatabaseError{
         try{
-           if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
-           if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound();
-           if(this.checkExtPackEx(newName)) throw new ExtPackExistsErr();
+           if(!this.gotDatabase) throw new ExtPackagesManager.DatabaseNotLoadedYet();
+           if(!this.checkExtPackEx(extpack)) throw new ExtPackagesManager.ExtPackNotFound(extpack);
+           if(this.checkExtPackEx(newName)) throw new ExtPackagesManager.ExtPackExistsErr(newName);
            PreparedStatement cursorCh = this.databaseConnected.prepareStatement("UPDATE extpackages SET nm_package = ? WHERE nm_pack = ?;");
            cursorCh.setString(1, newName);
            cursorCh.setString(2, extpack);
            cursorCh.executeUpdate();
         }
         catch(SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new ExtPackagesManager.RuntimeDatabaseError(re.getMessage());
         }
     }
 
     public void chExtPackLink(String extpack, String newLink) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
-            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound();
+            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound(extpack);
             PreparedStatement cursorCh = this.databaseConnected.prepareStatement("UPDATE extpackages SET vl_link = ? WHERE nm_pack = ?;");
             cursorCh.setString(1, newLink);
             cursorCh.setString(2, extpack);
             cursorCh.executeUpdate();
         }
         catch(SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
     public String[] getPackData(String extpack) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
-            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound();
+            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound(extpack);
             Statement cursorSel = this.databaseConnected.createStatement();
             cursorSel.setMaxRows(1);
             ResultSet packageData = cursorSel.executeQuery("SELECT * FROM extpackages WHERE nm_pack = \"" + extpack + "\";");
@@ -105,34 +122,39 @@ public class ExtPackagesManager extends DatabaseManager{
             return packData;
         }
         catch(SQLException re) {
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
-    protected static void downloadLink(String link, String path) throws InstallationError{
+    protected static void downloadLink(String link, String path, int webInterface) throws InstallationError, InvalidWebInterface{
         try{
             Runtime goToPath = Runtime.getRuntime();
             Runtime download = Runtime.getRuntime();
             goToPath.exec("cd " + path);
-            download.exec("wget " + link);
+            if(webInterface == ExtPackagesManager.WEB_INTERFACE_WGET) download.exec("wget " + link);
+            else if(webInterface == ExtPackagesManager.WEB_INTERFACE_CURL) download.exec("curl " + link);
+            else throw new InvalidWebInterface(webInterface);
         }
         catch(IOException ie){
-            throw new InstallationError();
+            throw new InstallationError(ie.getMessage());
         }
     }
 
     public void downloadPackage(String extpack, String path) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError, InstallationError{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
-            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound();
+            if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound(extpack);
             Statement cursorSel = this.databaseConnected.createStatement();
             cursorSel.setMaxRows(1);
             ResultSet packLinkP = cursorSel.executeQuery("SELECT vl_link FROM extpackages WHERE nm_pack = \"" + extpack +"\"");
             String packLink = packLinkP.getString("vl_link");
-            downloadLink(packLink, path);
+            downloadLink(packLink, path, ExtPackagesManager.WEB_INTERFACE_LINUX);
         }
         catch(SQLException re){
-            throw new RuntimeException();
+            throw new RuntimeException(re.getMessage());
+        }
+        catch (InvalidWebInterface iwe){
+            throw new RuntimeDatabaseError(iwe.getMessage());
         }
     }
 
@@ -152,7 +174,7 @@ public class ExtPackagesManager extends DatabaseManager{
             return tmpallEPacks;
         }
         catch (SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
@@ -165,7 +187,7 @@ public class ExtPackagesManager extends DatabaseManager{
             return result.getString("nm_pack");
         }
         catch (SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
@@ -179,31 +201,12 @@ public class ExtPackagesManager extends DatabaseManager{
             return results.size() > 0 ? results : null;
         }
         catch (SQLException re){
-            throw new RuntimeDatabaseError();
+            throw new RuntimeDatabaseError(re.getMessage());
         }
     }
 
-    public ExtPackagesManager(String path){
-        try{
-            this.databaseConnected = DriverManager.getConnection("jdbc:sqlite:" + path);
-            this.gotDatabase = true;
-        }
-        catch(Exception e){
-            System.out.println("Error: " + e.getMessage());
-        }
-    }
-
-
-    public static void main(String[] args) throws ClassNotFoundException{
-        Class.forName("org.sqlite.JDBC");
-        ExtPackagesManager expm = new ExtPackagesManager("./packages.db");
-        try{
-            expm.addExtPack("yamero", "https://yamero.com/yamero.deb");
-        }
-        catch(ExtPackExistsErr e){ System.out.println("Pack checking error");}
-        catch(DatabaseNotLoadedYet e){ System.out.println("db var error");}
-        catch(RuntimeDatabaseError e){ System.out.println("runtime error");}
-        System.out.println("ok");
+    public ExtPackagesManager(String path) throws DatabaseAlreadyConnected, RuntimeDatabaseError, InvalidDatabaseError{
+        super(path);
     }
 
 }
