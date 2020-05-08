@@ -59,14 +59,14 @@ public class DatabaseManager {
         catch(SQLException e){ return false;}
     }
 
-    public DatabaseManager(String database) throws InvalidDatabaseError, DatabaseAlreadyConnected, RuntimeDatabaseError{
-        if(!checkDatabase(database)) throw new InvalidDatabaseError("Invalid tables structure");
+    public DatabaseManager(String database) throws DatabaseAlreadyConnected, RuntimeDatabaseError{
         if(this.gotDatabase) throw new DatabaseAlreadyConnected();
         try{
-            this.databaseConnected = DriverManager.getConnection("jdbc:sqlite3:" + database);
+            Class.forName("org.sqlite.JDBC");
+            this.databaseConnected = DriverManager.getConnection("jdbc:sqlite:" + database);
             this.gotDatabase = true;
         }
-        catch(SQLException ex){
+        catch(Exception ex){
             throw new RuntimeDatabaseError(ex.getMessage());
         }
     }
