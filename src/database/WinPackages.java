@@ -36,10 +36,12 @@ public class WinPackages extends DatabaseManager{
         catch (SQLException re){ throw new RuntimeDatabaseError(re.getMessage());}
     }
 
-    public static void downloadPackage(String link) throws InstallationError{
-        Runtime downloadCmd = Runtime.getRuntime();
+    public static void downloadPackage(String link) throws InstallationError, java.io.IOException, java.lang.InterruptedException{
         try {
-            downloadCmd.exec("curl " + link);
+            ProcessBuilder parent = new ProcessBuilder("cmd", "/c", "curl " + link);
+            Process proc = parent.start();
+            int response = proc.waitFor();
+            if(response != 0) throw new InstallationError("Couldn't install package at link: " + link);
         } catch (IOException e) {
             throw new InstallationError(e.getMessage());
         }

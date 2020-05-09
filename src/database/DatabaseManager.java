@@ -1,11 +1,14 @@
 package database;
 import org.sqlite.*;
 import java.sql.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class DatabaseManager {
-    private static String MAIN_DATABASE = "packages.db";
+
     protected Connection databaseConnected;
     protected boolean gotDatabase;
+    protected String[] connectionData = {null, null, null};
 
     public static class DatabaseAlreadyConnected extends Exception{
 
@@ -16,12 +19,10 @@ public class DatabaseManager {
 
     public static class DatabaseNotLoadedYet extends Exception{
 
-        public DatabaseNotLoadedYet(){
-            super("ERROR: DATABASE NOT CONNECTED");
-        }
+        public DatabaseNotLoadedYet(){ super("ERROR: DATABASE NOT CONNECTED"); }
     }
 
-    protected  static class InvalidDatabaseError extends Exception{
+    public static class InvalidDatabaseError extends Exception{
 
         public InvalidDatabaseError(String message){
             super("ERROR: INVALID DATABASE {" + message + "}");
@@ -38,25 +39,9 @@ public class DatabaseManager {
     public DatabaseManager(){
         this.databaseConnected = null;
         this.gotDatabase = false;
-    }
-
-    private static boolean checkDatabase(String database){
-        Connection tmpConnection = null;
-        try{
-            tmpConnection = DriverManager.getConnection("jdbc:sqlite3:" + database);
-            String structureLs = "SELECT name FROM sqlite_master WHERE type = \"table\";";
-            Statement cursor = tmpConnection.createStatement();
-            ResultSet struct = cursor.executeQuery(structureLs);
-            while(struct.next()) {
-                String table = struct.getString("name");
-                String[] tables = {"packages", "extpackages", "winpackages"};
-                for(int i = 0; i < 3; i++){
-                    if(!table.equals(tables[i])) return false;
-                }
-            }
-            return true;
-        }
-        catch(SQLException e){ return false;}
+        this.connectionData[0] = null;
+        this.connectionData[1] = null;
+        this.connectionData[2] = null;
     }
 
     public DatabaseManager(String database) throws DatabaseAlreadyConnected, RuntimeDatabaseError{
@@ -65,13 +50,16 @@ public class DatabaseManager {
             Class.forName("org.sqlite.JDBC");
             this.databaseConnected = DriverManager.getConnection("jdbc:sqlite:" + database);
             this.gotDatabase = true;
+            this.connectionData[0] = database;
+            this.connectionData[1] = "v.3";
+            this.connectionData[2] = "org.sqlite.JDBC";
         }
         catch(Exception ex){
             throw new RuntimeDatabaseError(ex.getMessage());
         }
     }
 
-    public Connection getDatabaseConnected(){ return this.databaseConnected; }
+    @Nullable public Connection getDatabaseConnected(){ return this.databaseConnected; }
 
     public boolean getGotDatabase(){ return this.gotDatabase;}
 
@@ -83,4 +71,8 @@ public class DatabaseManager {
     public void setGotDatabase(boolean value){
         this.gotDatabase = value;
     }
+    @NotNull public String[] getConnectionData(){ return this.connectionData;}
+    @Nullable public String getDatabaseLoaded(){ return this.connectionData[0];}
+    @Nullable public String getDriverVersion(){ return this.connectionData[1];}
+    @Nullable public String getDriverUsing(){ return this.connectionData[2];}
 }

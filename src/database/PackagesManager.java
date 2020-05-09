@@ -31,6 +31,11 @@ public class PackagesManager extends DatabaseManager{
         super(database);
     }
 
+    public static class InstallationError extends Exception{
+
+        public InstallationError(String message){ super(message); }
+    }
+
     private boolean checkPackageExists(String pack) throws DatabaseNotLoadedYet, RuntimeDatabaseError{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
@@ -103,9 +108,13 @@ public class PackagesManager extends DatabaseManager{
         }
     }
 
-    public static void executeShell(String shell) throws IOException{
-        Runtime exec = Runtime.getRuntime();
-        exec.exec(shell);
+    public static void executeShell(String shell) throws IOException, java.lang.InterruptedException, InstallationError {
+        ProcessBuilder parentProcess = new ProcessBuilder("bash", "-c", shell).redirectErrorStream(true);
+        Process process = parentProcess.start();
+        int response = process.waitFor();
+        if(response != 0){
+            throw new InstallationError("Couldn't execute installation: " + shell);
+        }
     }
 
     public String[] getPackageData(String pack) throws DatabaseNotLoadedYet, RuntimeDatabaseError, PackageNotFound{
@@ -182,4 +191,10 @@ public class PackagesManager extends DatabaseManager{
         }
     }
 
+    public void installPackage(String pack) throws DatabaseNotLoadedYet, RuntimeDatabaseError, PackageNotFound, InstallationError, java.lang.InterruptedException, IOException{
+        if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
+        if(!this.checkPackageExists(pack)) throw new PackageNotFound(pack);
+        String[] data = this.getPackageData(pack);
+        PackagesManager.executeShell(data[2]);
+    }
 }

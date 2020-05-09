@@ -126,21 +126,30 @@ public class ExtPackagesManager extends DatabaseManager{
         }
     }
 
-    protected static void downloadLink(String link, String path, int webInterface) throws InstallationError, InvalidWebInterface{
+    protected static void downloadLink(String link, String path, int webInterface) throws InstallationError, InvalidWebInterface, java.lang.InterruptedException{
         try{
             Runtime goToPath = Runtime.getRuntime();
             Runtime download = Runtime.getRuntime();
-            goToPath.exec("cd " + path);
-            if(webInterface == ExtPackagesManager.WEB_INTERFACE_WGET) download.exec("wget " + link);
-            else if(webInterface == ExtPackagesManager.WEB_INTERFACE_CURL) download.exec("curl " + link);
+            int response;
+            if(webInterface == ExtPackagesManager.WEB_INTERFACE_WGET) {
+                ProcessBuilder procB = new ProcessBuilder("bash", "-c", "cd " + path + ";wget " + link).redirectErrorStream(true);
+                Process proc = procB.start();
+                response = proc.waitFor();
+            }
+            else if(webInterface == ExtPackagesManager.WEB_INTERFACE_CURL) {
+                ProcessBuilder procB = new ProcessBuilder("bash", "-c", "cd " + path + ";curl " + link).redirectErrorStream(true);
+                Process proc = procB.start();
+                response = proc.waitFor();
+            }
             else throw new InvalidWebInterface(webInterface);
+            if(response != 0) throw new InstallationError("Couldn't install package from link: " + link);
         }
         catch(IOException ie){
             throw new InstallationError(ie.getMessage());
         }
     }
 
-    public void downloadPackage(String extpack, String path) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError, InstallationError{
+    public void downloadPackage(String extpack, String path) throws DatabaseNotLoadedYet, ExtPackNotFound, RuntimeDatabaseError, InstallationError, java.lang.InterruptedException{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
             if(!this.checkExtPackEx(extpack)) throw new ExtPackNotFound(extpack);
