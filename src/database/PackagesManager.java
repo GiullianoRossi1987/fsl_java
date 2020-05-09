@@ -1,11 +1,12 @@
 package database;
+
 import java.io.IOException;
 import java.sql.*;
 import org.sqlite.*;
 import java.util.ArrayList;
 import java.lang.Exception;
 
-class PackagesManager extends DatabaseManager{
+public class PackagesManager extends DatabaseManager{
 
     public static class PackageNotFound extends Exception{
 

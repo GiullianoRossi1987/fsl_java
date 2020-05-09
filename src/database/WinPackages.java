@@ -8,7 +8,7 @@ import org.sqlite.*;
 import database.ExtPackagesManager.InstallationError;
 
 
-class WinPackages extends DatabaseManager{
+public class WinPackages extends DatabaseManager{
 
     public static class WinPackageAlreadyExists extends Exception{
 
