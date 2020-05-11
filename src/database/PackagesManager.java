@@ -69,7 +69,7 @@ public class PackagesManager extends DatabaseManager{
         try{
             if(!this.gotDatabase) throw new DatabaseNotLoadedYet();
             if(!this.checkPackageExists(pack)) throw new PackageNotFound(pack);
-            PreparedStatement cursorDel = this.databaseConnected.prepareStatement("DELETE FROM pacakges WHERE nm_pack = ?;");
+            PreparedStatement cursorDel = this.databaseConnected.prepareStatement("DELETE FROM packages WHERE nm_pack = ?;");
             cursorDel.setString(1, pack);
             cursorDel.executeUpdate();
         }
